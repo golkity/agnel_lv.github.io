@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>For My Love</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            background-color: #000;
+            user-select: none;
+        }
+
+        #desktop {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1536489955431-137213dd06bf?q=80&w=2600&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            z-index: 1;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .menu-bar {
+            height: 28px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; color: #fff; font-size: 13px; font-weight: 500;
+            z-index: 10;
+        }
+        .menu-left { display: flex; gap: 18px; }
+        
+        .desktop-icons {
+            position: absolute; top: 50px; right: 20px;
+            display: flex; flex-direction: column; gap: 25px; align-items: flex-end;
+            z-index: 5;
+        }
+        .icon-item { width: 80px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .icon-item:hover { opacity: 0.8; transform: scale(1.05); }
+        .folder {
+            width: 60px; height: 50px;
+            background: linear-gradient(180deg, #6ecbf5 0%, #009be6 100%);
+            border-radius: 4px; margin: 0 auto 5px auto; position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .folder::before {
+            content: ''; position: absolute; top: -6px; left: 0;
+            width: 25px; height: 8px; background: #6ecbf5; border-radius: 4px 4px 0 0;
+        }
+        .icon-text {
+            color: white; font-size: 12px; text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px;
+        }
+
+        .dock-container { display: flex; justify-content: center; margin-bottom: 20px; z-index: 10; }
+        .dock {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px; border-radius: 22px;
+            display: flex; gap: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .dock-icon {
+            width: 58px; height: 58px; border-radius: 14px;
+            cursor: pointer; position: relative;
+            transition: transform 0.2s cubic-bezier(0.3, 0, 0.5, 1);
+        }
+        .dock-icon:hover { transform: scale(1.15) translateY(-10px); }
+        .icon-safari { background: linear-gradient(180deg, #fafafa 0%, #1da1f2 100%); }
+        .icon-photos { background: linear-gradient(180deg, #ffcc00 0%, #ff9500 100%); }
+        .icon-terminal {
+            background: #222; border: 1px solid #555;
+            display: flex; justify-content: center; align-items: center;
+            color: #ddd; font-family: monospace; font-size: 28px; font-weight: bold;
+        }
+        .icon-terminal::before { content: ">_"; position: absolute; left: 10px; top: 10px; color: #fff; opacity: 0.8; }
+        .dock-icon.clicked { transform: scale(0.8) !important; filter: brightness(0.6); }
+
+        #cursor {
+            position: fixed; 
+            top: -50px; left: -50px; 
+            width: 25px; height: 35px; z-index: 9999;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='26' height='36' viewBox='0 0 26 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.48 2.37L1.87 18.06C1.65 18.8 2.5 19.42 3.14 18.96L9.67 14.34L17.37 22.04L20.57 18.84L12.87 11.14L17.48 10.61C18.24 10.52 18.61 9.58 18.04 9.1L6.48 2.37Z' fill='black' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-size: contain; background-repeat: no-repeat;
+            opacity: 0;
+            transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s;
+        }
+
+        #terminal-window {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 80%; max-width: 800px; height: 65%;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 12px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.15);
+            display: none; flex-direction: column; overflow: hidden;
+            z-index: 50;
+            transform-origin: center center;
+        }
+        .animating-open {
+            display: flex !important;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+        }
+        .window-header {
+            height: 34px; background: linear-gradient(180deg, #3a3a3a 0%, #2b2b2b 100%);
+            display: flex; align-items: center; padding-left: 14px;
+            border-bottom: 1px solid #111;
+        }
+        .traffic-lights { display: flex; gap: 8px; }
+        .light { width: 12px; height: 12px; border-radius: 50%; }
+        .close { background: #ff5f56; } .minimize { background: #ffbd2e; } .maximize { background: #27c93f; }
+        .window-title {
+            position: absolute; width: 100%; text-align: center;
+            color: #aaa; font-size: 13px; font-weight: 500; pointer-events: none;
+        }
+        #terminal-body {
+            flex: 1; padding: 20px;
+            font-family: 'Menlo', 'Monaco', monospace; font-size: 15px; color: #fff;
+            overflow-y: auto; line-height: 1.6; white-space: pre-wrap;
+        }
+
+        .prompt-user { color: #32d74b; font-weight: bold; }
+        .prompt-path { color: #5ac8fa; font-weight: bold; }
+        .log-ok { color: #32d74b; }
+        .log-warn { color: #ffd60a; }
+        .log-err { color: #ff453a; font-weight: bold; }
+        .log-res { color: #fff; font-weight: bold; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        .cursor { display: inline-block; width: 9px; height: 18px; background: #bbb; animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 100;
+            justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        #modal-card {
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(25px);
+            padding: 30px; border-radius: 24px; text-align: center;
+            width: 340px; max-width: 90%;
+            transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+        #modal-card h1 { margin: 0 0 10px 0; color: #ff2d55; font-size: 42px; }
+        #modal-card p { font-size: 18px; color: #222; margin-bottom: 20px; font-weight: 500;}
+        
+        /* Исправленные стили для карусели с видео */
+        .carousel {
+            width: 100%; height: 220px;
+            background: #000; border-radius: 16px;
+            overflow: hidden; position: relative; margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .slides-track { display: flex; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+        .slide { min-width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        /* Теперь правило работает и для img, и для video */
+        .slide img, .slide video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .carousel-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.8); border: none;
+            width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer; font-weight: bold; z-index: 10; font-size: 18px;
+            transition: 0.2s;
+        }
+        .carousel-btn:hover { background: #fff; transform: translateY(-50%) scale(1.1); }
+        .btn-prev { left: 10px; } .btn-next { right: 10px; }
+
+        .btn-action {
+            background: #007aff; color: white; border: none; padding: 14px 24px;
+            font-size: 16px; border-radius: 12px; font-weight: 600;
+            cursor: pointer; width: 100%; transition: 0.2s;
+        }
+        .btn-action:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+
+    <div id="desktop">
+        <div class="menu-bar">
+            <div class="menu-left">
+                <span></span><span><b>Finder</b></span><span>File</span><span>View</span><span>Go</span><span>Window</span>
+            </div>
+            <div class="menu-right">
+                <span>100%</span><span id="clock">12:00</span>
+            </div>
+        </div>
+
+        <div class="desktop-icons">
+            <div class="icon-item"><div class="folder"></div><div class="icon-text">My Heart</div></div>
+            <div class="icon-item"><div class="folder"></div><div class="icon-text">Photos</div></div>
+            <div class="icon-item"><div class="folder"></div><div class="icon-text">Secrets</div></div>
+        </div>
+
+        <div class="dock-container">
+            <div class="dock">
+                <div class="dock-icon icon-safari"></div>
+                <div class="dock-icon icon-photos"></div>
+                <div class="dock-icon icon-terminal" id="terminal-icon"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cursor"></div>
+
+    <div id="terminal-window">
+        <div class="window-header">
+            <div class="traffic-lights"><div class="light close"></div><div class="light minimize"></div><div class="light maximize"></div></div>
+            <div class="window-title">daniil — -zsh</div>
+        </div>
+        <div id="terminal-body"></div>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal-card">
+            <h1>❤️</h1>
+            <p>Ты самая лучшая!<br><b>Я тебя люблю!</b></p>
+            
+            <div class="carousel">
+                <div class="slides-track" id="track">
+                    <div class="slide">
+                        <video src="./src/export_1764509088476.MOV" autoplay muted loop playsinline></video>
+                    </div>
+                    <div class="slide">
+                        <video src="./src/v12044gd0000d4kiul7og65u1u1c2ha0.MP4" autoplay muted loop playsinline></video>
+                    </div>
+                    <div class="slide">
+                        <video src="./src/v15044gf0000d46vqu7og65jf6h2lrc0.MP4" autoplay muted loop playsinline></video>
+                    </div>
+                    <div class="slide">
+                        <video src="./src/v15044gf0000d4lloivog65q66r2h22g.MP4" autoplay muted loop playsinline></video>
+                    </div>
+                    <div class="slide">
+                        <video src="./src/v24044gl0000d4j1i8vog65t2u744a10.MP4" autoplay muted loop playsinline></video>
+                    </div>
+                </div>
+                <button class="carousel-btn btn-prev" onclick="moveSlide(-1)">‹</button>
+                <button class="carousel-btn btn-next" onclick="moveSlide(1)">›</button>
+            </div>
+
+            <button class="btn-action" onclick="goToTelegram()">Ответить ❤️</button>
+        </div>
+    </div>
+
+    <script>
+        const telegramUser = 'finnickek'; 
+
+        const scriptData = [
+            { text: "Last login: " + new Date().toDateString() + " on ttys001", delay: 300 },
+            { type: "cmd", text: "./init_surprise.sh --force", delay: 800 },
+            
+            { text: "> Identifying user role... <span class='log-ok'>[IT_BOYFRIEND]</span>", delay: 600 },
+            { text: "> Status: <span class='log-warn'>Executing first-time attempt...</span>", delay: 800 },
+            { text: "  Log: \"Я делаю такое впервые. Но я айтишник...\"", delay: 1000 },
+            { text: "  Log: \"Поэтому решил сделать приятно тем, чем умею лучше всего.\"", delay: 1200 },
+            
+            { text: "> Calculating distance... <span class='log-err'>[ERROR: TOO_FAR]</span>", delay: 800 },
+            { text: "  Warning: Physical presence not possible.", delay: 600 },
+            { text: "  Action: Sending digital love packets...", delay: 1000 },
+            { text: "...", delay: 500 },
+
+            { text: "> Checking support protocols... <span class='log-ok'>[ACTIVE]</span>", delay: 400 },
+            { text: "  Log: \"Всегда готов помочь и поддержать тебя.\"", delay: 1000 },
+
+            { text: "> Analyzing shared activities... <span class='log-ok'>[FAVORITES]</span>", delay: 400 },
+            { text: "  Result: Спасибо большое за твои слова поддержки.", delay: 800 },
+            { text: "  Result: Обожаю проводить с тобой время.", delay: 1200 },
+
+            { text: "> Scanning personality... <span class='log-ok'>[100% CUTE]</span>", delay: 400 },
+            { text: "  Result: Самая красивая, милая и добрая.", delay: 1200 },
+
+            { text: "> Uploading motivation... <span class='log-ok'>[SENT]</span>", delay: 400 },
+            { text: "  Message: Я всегда в тебя верю. У тебя всё получится!", delay: 1500 },
+
+            { text: "", delay: 400 },
+            { text: "System Conclusion: <b>I LOVE YOU</b> ❤️", delay: 1500 }
+        ];
+
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
+
+        window.addEventListener('load', () => {
+            const cursor = document.getElementById('cursor');
+            const icon = document.getElementById('terminal-icon');
+            
+            setTimeout(() => {
+                
+                cursor.style.opacity = '1';
+                
+                const rect = icon.getBoundingClientRect();
+                const targetX = rect.left + rect.width / 2;
+                const targetY = rect.top + rect.height / 2;
+                
+                cursor.style.transform = `translate(${targetX + 50}px, ${targetY + 50}px)`;
+
+                setTimeout(() => {
+                    icon.classList.add('clicked');
+                    
+                    setTimeout(() => {
+                        icon.classList.remove('clicked');
+                        openWindow(icon);
+                        cursor.style.opacity = '0'; 
+                    }, 250);
+                }, 1500);
+
+            }, 5000); 
+        });
+
+        function openWindow(icon) {
+            const win = document.getElementById('terminal-window');
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+            const rect = icon.getBoundingClientRect();
+            
+            const iconCX = rect.left + rect.width / 2;
+            const iconCY = rect.top + rect.height / 2;
+
+            const moveX = iconCX - (winW / 2);
+            const moveY = iconCY - (winH / 2);
+
+            win.style.transform = `translate(-50%, -50%) translate(${moveX}px, ${moveY}px) scale(0.05)`;
+            win.style.opacity = '0';
+            win.classList.add('animating-open'); 
+
+            void win.offsetWidth;
+
+            win.style.transform = `translate(-50%, -50%) scale(1)`;
+            win.style.opacity = '1';
+
+            setTimeout(startTyping, 600);
+        }
+
+        let lineIdx = 0;
+        let charIdx = 0;
+        const termBody = document.getElementById('terminal-body');
+
+        function startTyping() {
+            termBody.innerHTML = '<span class="cursor"></span>';
+            typeNextLine();
+        }
+
+        function typeNextLine() {
+            if (lineIdx >= scriptData.length) {
+                setTimeout(showModal, 800);
+                return;
+            }
+
+            const line = scriptData[lineIdx];
+            const cursor = termBody.querySelector('.cursor');
+            
+            if (charIdx === 0 && line.type === 'cmd') {
+                const promptHTML = '<span class="prompt-user">daniil@macbook</span>:<span class="prompt-path">~</span>$ ';
+                cursor.insertAdjacentHTML('beforebegin', promptHTML);
+            }
+
+            const text = line.text;
+
+            if (text.includes('<')) {
+                cursor.insertAdjacentHTML('beforebegin', text + '<br>');
+                lineIdx++;
+                charIdx = 0;
+                termBody.scrollTop = termBody.scrollHeight;
+                setTimeout(typeNextLine, line.delay);
+            } else {
+                if (charIdx < text.length) {
+                    cursor.insertAdjacentText('beforebegin', text.charAt(charIdx));
+                    charIdx++;
+                    setTimeout(typeNextLine, Math.random() * 30 + 30);
+                } else {
+                    cursor.insertAdjacentHTML('beforebegin', '<br>');
+                    lineIdx++;
+                    charIdx = 0;
+                    termBody.scrollTop = termBody.scrollHeight;
+                    setTimeout(typeNextLine, line.delay);
+                }
+            }
+        }
+
+        function showModal() {
+            const overlay = document.getElementById('modal-overlay');
+            const card = document.getElementById('modal-card');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                card.style.transform = 'scale(1)';
+            }, 50);
+        }
+
+        let currentSlide = 0;
+        function moveSlide(dir) {
+            const track = document.getElementById('track');
+            const slides = document.querySelectorAll('.slide');
+            currentSlide = (currentSlide + dir + slides.length) % slides.length;
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+
+        function goToTelegram() {
+            if(telegramUser === 'USERNAME') alert('Впиши ник (строка 249)!');
+            else window.location.href = `https://t.me/${telegramUser}`;
+        }
+    </script>
+</body>
+</html>
