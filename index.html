@@ -285,7 +285,7 @@
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
         }, 1000);
 
-        window.addEventListener('load', () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const cursor = document.getElementById('cursor');
             const icon = document.getElementById('terminal-icon');
             
@@ -309,7 +309,7 @@
                     }, 250);
                 }, 1500);
 
-            }, 100);
+            }, 10); 
         });
 
         function openWindow(icon) {
